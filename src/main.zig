@@ -4128,6 +4128,11 @@ fn serve(
     all_args: []const []const u8,
     runtime_args_start: ?usize,
 ) !void {
+    var wait_attach = true;
+    while (wait_attach) {
+        std.time.sleep(std.time.ns_per_s * 10); // For attaching a debugger
+    }
+    wait_attach = false;
     const gpa = comp.gpa;
 
     var server = try Server.init(.{
