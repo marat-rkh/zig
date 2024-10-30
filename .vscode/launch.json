@@ -1,0 +1,37 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Attach lldb",
+            "type": "lldb",
+            "request": "attach",
+            "pid": "${command:pickMyProcess}"
+        },
+        {
+            "name": "Debug lldb",
+            "type": "lldb",
+            "request": "launch",
+            "program": "./build/stage4/bin/zig",
+            "args": "build test-cases -Dskip-release -Dskip-non-native -Dskip-translate-c -Dskip-run-translated-c -Dtest-filter=struct_field_assign_wrong_type",
+            "cwd": "${workspaceRoot}",
+            "initCommands": [
+                "settings set target.process.follow-fork-mode child"
+            ]
+        },
+        {
+            "name": "Debug gdb",
+            "type": "gdb",
+            "request": "launch",
+            "target": "./build/stage4/bin/zig",
+            "arguments": "build test-cases -Dskip-release -Dskip-non-native -Dskip-translate-c -Dskip-run-translated-c -Dtest-filter=struct_field_assign_wrong_type",
+            "cwd": "${workspaceRoot}",
+            "debugger_args": [
+                "-ex", "set follow-fork-mode child",
+                "-ex", "set detach-on-fork off"
+            ],
+        }
+    ]
+}
