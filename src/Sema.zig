@@ -20422,7 +20422,11 @@ fn zirStructInit(
             found_fields[field_index] = item.data.field_type;
             const uncoerced_init = try sema.resolveInst(item.data.init);
             const field_ty = resolved_ty.fieldType(field_index, zcu);
-            field_inits[field_index] = try sema.coerce(block, field_ty, uncoerced_init, field_src);
+            const init_src = block.src(.{ .init_elem = .{
+                .init_node_offset = src.offset.node_offset.x,
+                .elem_index = @intCast(field_i),
+            } });
+            field_inits[field_index] = try sema.coerce2(block, field_ty, init_src, uncoerced_init, field_src);
             if (!is_packed) {
                 try resolved_ty.resolveStructFieldInits(pt);
                 if (try resolved_ty.structFieldValueComptime(pt, field_index)) |default_value| {
@@ -29143,7 +29147,18 @@ pub fn coerce(
     inst: Air.Inst.Ref,
     inst_src: LazySrcLoc,
 ) CompileError!Air.Inst.Ref {
-    return sema.coerceExtra(block, dest_ty_unresolved, inst, inst_src, .{}) catch |err| switch (err) {
+    return coerce2(sema, block, dest_ty_unresolved, inst_src, inst, inst_src);
+}
+
+fn coerce2(
+    sema: *Sema,
+    block: *Block,
+    dest_ty_unresolved: Type,
+    dest_ty_src: LazySrcLoc,
+    inst: Air.Inst.Ref,
+    inst_src: LazySrcLoc,
+) CompileError!Air.Inst.Ref {
+    return sema.coerceExtra2(block, dest_ty_unresolved, dest_ty_src, inst, inst_src, .{}) catch |err| switch (err) {
         error.NotCoercible => unreachable,
         else => |e| return e,
     };
@@ -29189,11 +29204,22 @@ fn coerceExtra(
     inst_src: LazySrcLoc,
     opts: CoerceOpts,
 ) CoersionError!Air.Inst.Ref {
+    return coerceExtra2(sema, block, dest_ty, inst_src, inst, inst_src, opts);
+}
+
+fn coerceExtra2(
+    sema: *Sema,
+    block: *Block,
+    dest_ty: Type,
+    dest_ty_src: LazySrcLoc,
+    inst: Air.Inst.Ref,
+    inst_src: LazySrcLoc,
+    opts: CoerceOpts,
+) CoersionError!Air.Inst.Ref {
     if (dest_ty.isGenericPoison()) return inst;
     const pt = sema.pt;
     const zcu = pt.zcu;
     const ip = &zcu.intern_pool;
-    const dest_ty_src = inst_src; // TODO better source location
     try dest_ty.resolveFields(pt);
     const inst_ty = sema.typeOf(inst);
     try inst_ty.resolveFields(pt);
